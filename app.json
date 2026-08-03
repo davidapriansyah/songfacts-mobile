@@ -1,25 +1,34 @@
 {
   "expo": {
-    "name": "songfacts-mobile",
-    "slug": "songfacts-mobile",
+    "name": "Bloop",
+    "slug": "bloop-music",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "ios": {
-      "supportsTablet": true
-    },
+    "userInterfaceStyle": "dark",
+    "scheme": "bloop",
     "android": {
+      "package": "com.bloop.music",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0a0a0a",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
     },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bloop.music"
+    },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-audio",
+      "@react-native-google-signin/google-signin",
+      "expo-asset"
+    ]
   }
 }
