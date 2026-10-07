@@ -7,8 +7,14 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "scheme": "bloop",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0a"
+    },
     "android": {
       "package": "com.bloop.music",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0a0a0a",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -24,10 +30,14 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "extra": {
+      "apiUrl": "https://bloop-api.opsctrl.dev/api",
+      "eas": {
+        "projectId": "a485e436-4a63-4687-87a6-56d3845e9587"
+      }
+    },
     "plugins": [
       "expo-secure-store",
-      "expo-audio",
-      "@react-native-google-signin/google-signin",
       "expo-asset"
     ]
   }

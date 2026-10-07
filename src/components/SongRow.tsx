@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { PlayableItem } from '../context/PlayerContext';
 import { colors } from '../theme/colors';
 
@@ -7,11 +8,13 @@ interface Props {
   song: PlayableItem;
   onPlay?: (song: PlayableItem) => void;
   onFav?: (song: PlayableItem) => void;
+  onAddQueue?: (song: PlayableItem) => void;
   isFavorite?: boolean;
+  isInQueue?: boolean;
   index?: number;
 }
 
-export default function SongRow({ song, onPlay, onFav, isFavorite, index }: Props) {
+export default function SongRow({ song, onPlay, onFav, onAddQueue, isFavorite, isInQueue, index }: Props) {
   const videoId = song.videoId || song.youtubeId;
   const cover = song.albumCover || (videoId ? `https://img.youtube.com/vi/${videoId}/default.jpg` : null);
 
@@ -31,9 +34,22 @@ export default function SongRow({ song, onPlay, onFav, isFavorite, index }: Prop
           <Text style={styles.artist} numberOfLines={1}>{song.artist}</Text>
         </View>
       </TouchableOpacity>
+      {onAddQueue && (
+        <TouchableOpacity onPress={() => onAddQueue(song)} hitSlop={8}>
+          {isInQueue ? (
+            <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+          ) : (
+            <Ionicons name="add-circle-outline" size={20} color={colors.textMuted} />
+          )}
+        </TouchableOpacity>
+      )}
       {onFav && (
         <TouchableOpacity onPress={() => onFav(song)} hitSlop={8}>
-          <Text style={[styles.fav, isFavorite && styles.favActive]}>{isFavorite ? '♥' : '♡'}</Text>
+          <Ionicons
+            name={isFavorite ? 'heart' : 'heart-outline'}
+            size={18}
+            color={isFavorite ? colors.primary : colors.textMuted}
+          />
         </TouchableOpacity>
       )}
     </View>
@@ -86,12 +102,5 @@ const styles = StyleSheet.create({
   artist: {
     color: colors.textSecondary,
     fontSize: 12,
-  },
-  fav: {
-    color: colors.textMuted,
-    fontSize: 20,
-  },
-  favActive: {
-    color: colors.primary,
   },
 });

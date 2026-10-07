@@ -14,6 +14,7 @@ import { usePlayer, PlayableItem } from '../context/PlayerContext';
 import { MainStackParamList } from '../navigation/types';
 import SongRow from '../components/SongRow';
 import { colors } from '../theme/colors';
+import { songKey, dedupeSongs } from '../utils';
 
 type Route = RouteProp<MainStackParamList, 'Genre'>;
 type Nav = NativeStackNavigationProp<MainStackParamList>;
@@ -24,13 +25,13 @@ export default function GenreScreen() {
   const { genre } = route.params;
   const [songs, setSongs] = useState<PlayableItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const { playSong, addToQueue } = usePlayer();
+  const { playSong, addToQueue, isSongInQueue } = usePlayer();
 
   const fetchSongs = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await songsApi.getByGenre(genre, 50);
-      setSongs(data.songs || data);
+      setSongs(dedupeSongs(data.songs || data));
     } catch {
       setSongs([]);
     } finally {
@@ -55,13 +56,14 @@ export default function GenreScreen() {
     <View style={styles.container}>
       <FlatList
         data={songs}
-        keyExtractor={(item, i) => `${item.id || item.videoId || i}`}
+        keyExtractor={(item, i) => songKey(item, i)}
         renderItem={({ item, index }) => (
           <SongRow
             song={item}
             index={index}
-            onPlay={(s) => playSong(s, songs, index)}
-            onFav={(s) => addToQueue(s)}
+            onPlay={(s) => playSong(s, songs, index, 'random')}
+            onAddQueue={(s) => addToQueue(s)}
+            isInQueue={isSongInQueue(item.id ?? item.videoId ?? item.youtubeId)}
           />
         )}
         ListEmptyComponent={<Text style={styles.empty}>No songs in this genre yet</Text>}

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { authApi } from '../api/auth';
-import { getStoredUser, setSession, clearSession } from '../api/client';
+import { getStoredUser, setSession, clearSession, setUnauthorizedHandler } from '../api/client';
 import { User } from '../types';
 
 interface AuthContextValue {
@@ -31,6 +31,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setUser(null);
+      setToken(null);
+    });
+    return () => setUnauthorizedHandler(null);
+  }, []);
+
   const applySession = (data: { token: string; user: User }) => {
     setSession(data.token, data.user);
     setUser(data.user);
@@ -43,8 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
-    const { data } = await authApi.register(email, password);
-    applySession(data);
+    await authApi.register(email, password);
   };
 
   const googleSignIn = async (googleId: string, email: string, profileImage?: string) => {

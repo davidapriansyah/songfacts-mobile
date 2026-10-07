@@ -7,21 +7,27 @@ import {
   StyleSheet,
   ActivityIndicator,
   KeyboardAvoidingView,
+  ScrollView,
   Platform,
   Alert,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '../context/AuthContext';
 import { AuthStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
+import logo from '../../assets/icon.png';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [confirm, setConfirm] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
   const navigation = useNavigation<Nav>();
@@ -38,6 +44,9 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await signUp(email.trim(), password);
+      Alert.alert('Account created', 'Please sign in to continue', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
     } catch (err: any) {
       Alert.alert('Registration failed', err?.response?.data?.message || 'Something went wrong');
     } finally {
@@ -48,10 +57,15 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
+      >
         <View style={styles.header}>
+          <Image source={logo} style={styles.logoImage} />
           <Text style={styles.logo}>Bloop</Text>
           <Text style={styles.subtitle}>Create your account</Text>
         </View>
@@ -68,22 +82,50 @@ export default function RegisterScreen() {
             autoCapitalize="none"
             keyboardType="email-address"
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor={colors.textMuted}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm password"
-            placeholderTextColor={colors.textMuted}
-            value={confirm}
-            onChangeText={setConfirm}
-            secureTextEntry
-          />
+          <View style={styles.passwordWrap}>
+            <TextInput
+              style={styles.inputPassword}
+              placeholder="Password"
+              placeholderTextColor={colors.textMuted}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => setShowPassword((v) => !v)}
+              hitSlop={10}
+            >
+              <Ionicons
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={20}
+                color={colors.textMuted}
+              />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.passwordWrap}>
+            <TextInput
+              style={styles.inputPassword}
+              placeholder="Confirm password"
+              placeholderTextColor={colors.textMuted}
+              value={confirm}
+              onChangeText={setConfirm}
+              secureTextEntry={!showConfirm}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => setShowConfirm((v) => !v)}
+              hitSlop={10}
+            >
+              <Ionicons
+                name={showConfirm ? 'eye-off-outline' : 'eye-outline'}
+                size={20}
+                color={colors.textMuted}
+              />
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
@@ -103,7 +145,7 @@ export default function RegisterScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -120,6 +162,12 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 32,
+  },
+  logoImage: {
+    width: 84,
+    height: 84,
+    borderRadius: 20,
+    marginBottom: 12,
   },
   logo: {
     fontSize: 36,
@@ -152,6 +200,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     color: colors.text,
+  },
+  passwordWrap: {
+    position: 'relative',
+  },
+  inputPassword: {
+    backgroundColor: colors.dark900,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingRight: 44,
+    paddingVertical: 12,
+    color: colors.text,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
   button: {
     backgroundColor: colors.primary,

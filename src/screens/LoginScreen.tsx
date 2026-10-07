@@ -7,24 +7,27 @@ import {
   StyleSheet,
   ActivityIndicator,
   KeyboardAvoidingView,
+  ScrollView,
   Platform,
   Alert,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '../context/AuthContext';
 import { AuthStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
+import logo from '../../assets/icon.png';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const { signIn, googleSignIn } = useAuth();
+  const { signIn } = useAuth();
   const navigation = useNavigation<Nav>();
 
   const handleSubmit = async () => {
@@ -38,37 +41,18 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogle = async () => {
-    setGoogleLoading(true);
-    try {
-      await GoogleSignin.hasPlayServices();
-      const res = await GoogleSignin.signIn();
-      if (res.type === 'success') {
-        const { user, idToken } = res.data;
-        if (idToken) {
-          const payload = JSON.parse(atob(idToken.split('.')[1]));
-          await googleSignIn(payload.sub, user.email, user.photo ?? undefined);
-        }
-      }
-    } catch (error: any) {
-      if (error?.code !== statusCodes.SIGN_IN_CANCELLED) {
-        Alert.alert(
-          'Google login failed',
-          'Pastikan build development (bukan Expo Go) dan SHA-1 sudah terdaftar di Google Cloud.'
-        );
-      }
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
+      >
         <View style={styles.header}>
+          <Image source={logo} style={styles.logoImage} />
           <Text style={styles.logo}>Bloop</Text>
           <Text style={styles.subtitle}>Discover music, facts & stories</Text>
         </View>
@@ -85,14 +69,28 @@ export default function LoginScreen() {
             autoCapitalize="none"
             keyboardType="email-address"
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor={colors.textMuted}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+          <View style={styles.passwordWrap}>
+            <TextInput
+              style={styles.inputPassword}
+              placeholder="Password"
+              placeholderTextColor={colors.textMuted}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => setShowPassword((v) => !v)}
+              hitSlop={10}
+            >
+              <Ionicons
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={20}
+                color={colors.textMuted}
+              />
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
@@ -106,24 +104,6 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
 
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.googleButton, googleLoading && styles.buttonDisabled]}
-            onPress={handleGoogle}
-            disabled={googleLoading}
-          >
-            {googleLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.googleText}>Continue with Google</Text>
-            )}
-          </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.linkRow}
             onPress={() => navigation.navigate('Register')}
@@ -133,7 +113,7 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -150,6 +130,12 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 32,
+  },
+  logoImage: {
+    width: 84,
+    height: 84,
+    borderRadius: 20,
+    marginBottom: 12,
   },
   logo: {
     fontSize: 36,
@@ -183,6 +169,26 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     color: colors.text,
   },
+  passwordWrap: {
+    position: 'relative',
+  },
+  inputPassword: {
+    backgroundColor: colors.dark900,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingRight: 44,
+    paddingVertical: 12,
+    color: colors.text,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
   button: {
     backgroundColor: colors.primary,
     borderRadius: 12,
@@ -194,31 +200,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontWeight: '600',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginVertical: 8,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  dividerText: {
-    color: colors.textMuted,
-    fontSize: 13,
-  },
-  googleButton: {
-    backgroundColor: colors.dark700,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  googleText: {
-    color: colors.text,
     fontWeight: '600',
   },
   linkRow: {

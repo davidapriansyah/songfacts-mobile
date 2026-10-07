@@ -3,10 +3,10 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-const API_URL =
+export const API_URL =
   process.env.EXPO_PUBLIC_API_URL ??
   Constants.expoConfig?.extra?.apiUrl ??
-  'https://bloop-api.opsctrl.dev/api';
+  'http://10.67.84.111:3000/api';
 
 export const TOKEN_KEY = 'bloop_token';
 export const USER_KEY = 'bloop_user';
@@ -38,6 +38,12 @@ export async function clearSession() {
   await SecureStore.deleteItemAsync(USER_KEY);
 }
 
+let onUnauthorized: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  onUnauthorized = handler;
+}
+
 const api = axios.create({
   baseURL: API_URL,
   timeout: 20000,
@@ -56,6 +62,7 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       await clearSession();
+      onUnauthorized?.();
     }
     return Promise.reject(error);
   }
