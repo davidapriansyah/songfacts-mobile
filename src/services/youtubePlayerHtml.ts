@@ -30,6 +30,8 @@ export const YOUTUBE_PLAYER_HTML = `<!DOCTYPE html>
   var ready = false;
   var pollId = null;
   var pending = null;
+  var userPaused = false;
+  var resumeId = null;
 
   function post(msg) {
     try { window.ReactNativeWebView.postMessage(JSON.stringify(msg)); } catch (e) {}
@@ -78,6 +80,36 @@ export const YOUTUBE_PLAYER_HTML = `<!DOCTYPE html>
       } catch (e) {}
     }, 500);
   }
+
+  // YouTube/Chromium pause the iframe as soon as the document is hidden
+  // (Home button, app switch, screen off). While hidden — and only while the
+  // user did not pause on purpose — keep nudging the player back to playing.
+  function stopResume() {
+    if (resumeId) { clearInterval(resumeId); resumeId = null; }
+  }
+
+  function startResume() {
+    if (resumeId) return;
+    resumeId = setInterval(function () {
+      if (userPaused || !ready || !player) { stopResume(); return; }
+      if (!document.hidden && !document.webkitHidden) { stopResume(); return; }
+      try {
+        var state = player.getPlayerState();
+        // Only nudge 2 (paused) / 3 (buffering). State 0 is "ended": replaying
+        // it here would loop the same track forever while in background.
+        if (state === 2 || state === 3) player.playVideo();
+      } catch (e) {}
+    }, 2000);
+  }
+
+  function syncResume() {
+    if (document.hidden || document.webkitHidden) startResume();
+    else stopResume();
+  }
+
+  document.addEventListener('visibilitychange', syncResume);
+  window.addEventListener('pagehide', syncResume);
+  window.addEventListener('focus', syncResume);
 
   // Queue a video for an existing, ready player. If the player is still being
   // constructed the request is stored and applied once onReady fires.
@@ -130,6 +162,7 @@ export const YOUTUBE_PLAYER_HTML = `<!DOCTYPE html>
   }
 
   function load(videoId, autoplay) {
+    userPaused = false;
     if (!created) {
       created = true;
       pending = { videoId: videoId, autoplay: autoplay };
@@ -146,10 +179,29 @@ export const YOUTUBE_PLAYER_HTML = `<!DOCTYPE html>
 
   window.__yt = {
     load: load,
-    play: function () { if (player) { try { player.playVideo(); } catch (e) {} } },
-    pause: function () { if (player) { try { player.pauseVideo(); } catch (e) {} } },
+    play: function () {
+      userPaused = false;
+      syncResume();
+      if (player) { try { player.playVideo(); } catch (e) {} }
+    },
+    pause: function () {
+      userPaused = true;
+      stopResume();
+      if (player) { try { player.pauseVideo(); } catch (e) {} }
+    },
     seek: function (t) { if (player) { try { player.seekTo(t, true); } catch (e) {} } },
-    stop: function () { stopPoll(); if (player) { try { player.stopVideo(); } catch (e) {} } }
+    stop: function () {
+      userPaused = true;
+      stopResume();
+      stopPoll();
+      if (player) { try { player.stopVideo(); } catch (e) {} }
+    },
+    // Called from React Native when the app state changes (background/active).
+    resume: function () {
+      userPaused = false;
+      syncResume();
+      if (ready && player) { try { player.playVideo(); } catch (e) {} }
+    }
   };
 
   post({ type: 'booted' });

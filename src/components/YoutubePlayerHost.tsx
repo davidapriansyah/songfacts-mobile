@@ -35,6 +35,7 @@ export interface YoutubePlayerHandle {
   pause: () => void;
   seek: (seconds: number) => void;
   stop: () => void;
+  resume: () => void;
 }
 
 interface Props {
@@ -46,7 +47,8 @@ type Command =
   | { kind: 'play' }
   | { kind: 'pause' }
   | { kind: 'seek'; seconds: number }
-  | { kind: 'stop' };
+  | { kind: 'stop' }
+  | { kind: 'resume' };
 
 function toJavaScript(cmd: Command): string {
   switch (cmd.kind) {
@@ -60,6 +62,8 @@ function toJavaScript(cmd: Command): string {
       return `window.__yt && window.__yt.seek(${cmd.seconds}); true;`;
     case 'stop':
       return 'window.__yt && window.__yt.stop(); true;';
+    case 'resume':
+      return 'window.__yt && window.__yt.resume(); true;';
   }
 }
 
@@ -103,6 +107,7 @@ const YoutubePlayerHost = forwardRef<YoutubePlayerHandle, Props>(function Youtub
       pause: () => send({ kind: 'pause' }),
       seek: (seconds) => send({ kind: 'seek', seconds }),
       stop: () => send({ kind: 'stop' }),
+      resume: () => send({ kind: 'resume' }),
     }),
     [send]
   );

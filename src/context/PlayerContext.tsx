@@ -7,6 +7,7 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
+import { AppState } from 'react-native';
 import YoutubePlayerHost, {
   type YoutubePlayerEvent,
   type YoutubePlayerHandle,
@@ -75,9 +76,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const sourceModeRef = useRef<'sequential' | 'random'>('random');
   const startedRef = useRef(false);
   const loadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isPlayingRef = useRef(false);
 
   useEffect(() => { queueRef.current = queue; }, [queue]);
   useEffect(() => { currentTrackRef.current = currentTrack; }, [currentTrack]);
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
 
   const autoAdvance = useCallback(() => {
     const current = currentTrackRef.current;
@@ -297,6 +300,22 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     },
     []
   );
+
+  // Chromium/YouTube pause the hidden WebView player as soon as the app leaves
+  // the foreground (Home button, app switch, screen off). If we were playing,
+  // tell the host to resume; the host HTML keeps re-nudging every 2s while the
+  // document stays hidden. Paused-by-user is never resumed here because
+  // isPlayingRef is false in that case.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (!isPlayingRef.current) return;
+      if (state === 'active' || state === 'background' || state === 'inactive') {
+        console.log(`[yt] app state ${state}: requesting resume`);
+        playerRef.current?.resume();
+      }
+    });
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => () => {
     if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
