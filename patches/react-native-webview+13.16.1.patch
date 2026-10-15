@@ -1,0 +1,25 @@
+diff --git a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebView.java b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebView.java
+index 80c6803..63dd052 100644
+--- a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebView.java
++++ b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebView.java
+@@ -117,6 +117,20 @@ public class RNCWebView extends WebView implements LifecycleEventListener {
+         // do nothing
+     }
+ 
++    @Override
++    protected void onWindowVisibilityChanged(int visibility) {
++        // Keep the WebView reported as VISIBLE to Chromium even while the app is
++        // backgrounded. Since Chromium 134, Android WebView really pauses media
++        // playback once the page is considered hidden; suppressing the hidden
++        // signal (paired with a foreground service keeping the process alive) is
++        // what lets audio keep playing in the background.
++        if (visibility != View.GONE) {
++            super.onWindowVisibilityChanged(View.VISIBLE);
++        } else {
++            super.onWindowVisibilityChanged(visibility);
++        }
++    }
++
+     @Override
+     public void onHostDestroy() {
+         cleanupCallbacksAndDestroy();
