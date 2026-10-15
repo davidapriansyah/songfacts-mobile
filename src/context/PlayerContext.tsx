@@ -12,6 +12,10 @@ import YoutubePlayerHost, {
   type YoutubePlayerEvent,
   type YoutubePlayerHandle,
 } from '../components/YoutubePlayerHost';
+import {
+  backgroundPlayback,
+  ensureNotificationPermission,
+} from '../../modules/bloop-foreground';
 
 export interface PlayableItem {
   id?: number;
@@ -115,7 +119,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       const pick = pool[Math.floor(Math.random() * pool.length)];
       setCurrentTrack(pick);
       playStreamRef.current(pick);
+      return;
     }
+
+    // Nothing left to play: let the OS reclaim the process.
+    backgroundPlayback.stop();
   }, []);
 
   const autoAdvanceRef = useRef(autoAdvance);
@@ -148,6 +156,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     console.log(`[play] ${track.title}: youtube iframe (${videoId})`);
     playerRef.current?.load(videoId, true);
+    // Raise the process to foreground so the WebView keeps playing in background.
+    backgroundPlayback.start(track.title, track.artist);
 
     loadTimerRef.current = setTimeout(() => {
       if (startedRef.current) return;
@@ -254,9 +264,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
     if (isPlaying) {
       playerRef.current?.pause();
+      backgroundPlayback.stop();
       return;
     }
     playerRef.current?.play();
+    backgroundPlayback.start(track.title, track.artist);
   }, [hasError, isPlaying, playStream]);
 
   const next = useCallback(() => {
@@ -317,8 +329,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     return () => subscription.remove();
   }, []);
 
+  // Foreground-service notifications require POST_NOTIFICATIONS on Android 13+.
+  useEffect(() => {
+    ensureNotificationPermission();
+  }, []);
+
   useEffect(() => () => {
     if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
+    backgroundPlayback.stop();
   }, []);
 
   return (
